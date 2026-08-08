@@ -1,57 +1,184 @@
-# MAX Messenger для NixOS
+# MAX Messenger for NixOS
 
-Декларативный пакет MAX Messenger для NixOS.
+Установка **MAX Messenger** на NixOS из официального Linux `.deb` пакета MAX.
 
-Пакет использует официальный DEB-пакет MAX и автоматически
-создаёт FHS-окружение с необходимыми библиотеками для запуска
-Qt/WebEngine-приложения на NixOS.
+Проект упаковывает официальный Debian-пакет MAX в Nix derivation и запускает приложение внутри FHS-окружения с необходимыми библиотеками Qt, X11/XCB, PipeWire, OpenGL, GTK и другими runtime-зависимостями.
 
-## Установка
+## Возможности
 
-Скопировать `max.nix`:
+* MAX Messenger работает на NixOS.
+* Не требуется вручную устанавливать `.deb`.
+* Зависимости Linux-приложения предоставляются через Nix.
+* Используется FHS environment для совместимости с бинарным Linux-приложением.
+* Создаётся команда `max`.
+* Создаётся `.desktop` файл для запуска MAX из меню приложений.
+* Конкретная версия пакета фиксируется через SHA-256.
 
-    git clone https://github.com/onikmani/nixos-max.git
-    cd nixos-max
+## Требования
 
-Проверить сборку:
+* NixOS
+* `nixpkgs`
+* архитектура `x86_64-linux`
+* включённая поддержка запуска графических приложений
 
-    nix-build ./max.nix
+## Быстрая установка
 
-Запустить:
+Клонировать репозиторий:
 
-    ./result/bin/max
+```bash
+git clone https://github.com/onikmani/nixos-max.git
+cd nixos-max
+```
 
-## Подключение к configuration.nix
+Собрать пакет:
 
-Добавить в `environment.systemPackages`:
+```bash
+nix-build ./max.nix
+```
 
-    (pkgs.callPackage /путь/к/max.nix {})
+После успешной сборки запустить:
 
-После этого применить конфигурацию:
+```bash
+./result/bin/max
+```
 
-    sudo nixos-rebuild switch
+## Установка в NixOS
 
-После установки команда:
+Можно добавить пакет непосредственно в `/etc/nixos/configuration.nix`.
 
-    max
+Например:
 
-## Что входит
+```nix
+environment.systemPackages = with pkgs; [
+  # другие пакеты
 
-- официальный MAX DEB;
-- FHS-окружение;
-- Qt/X11/XCB библиотеки;
-- libxkbfile;
-- libxcb-cursor;
-- PipeWire/ALSA;
-- libgcrypt + libgpg-error;
-- GTK/DBus;
-- desktop-файл;
-- запуск через обычную команду `max`.
+  (pkgs.callPackage /home/onikmani/nixos-max/max.nix {})
+];
+```
 
-## Версия
+Затем применить конфигурацию:
 
-MAX 26.26.0
+```bash
+sudo nixos-rebuild switch
+```
 
-Источник:
+После этого:
 
-https://download.max.ru/linux/deb/pool/main/m/max/MAX-26.26.0.76189.deb
+```bash
+max
+```
+
+будет доступен в системе.
+
+## Если используется `pkexec`
+
+В конфигурациях, где `sudo` не используется напрямую, можно применить:
+
+```bash
+pkexec nixos-rebuild switch
+```
+
+## Как это работает
+
+Официальный `.deb` пакет MAX скачивается через `fetchurl`:
+
+```nix
+maxDeb = pkgs.fetchurl {
+  url = "...";
+  sha256 = "...";
+};
+```
+
+Затем пакет распаковывается с помощью `dpkg`, а содержимое MAX помещается в Nix store.
+
+Сам MAX запускается внутри `buildFHSEnvBubblewrap`, поскольку это готовое бинарное Linux-приложение, рассчитанное на традиционную FHS-структуру Linux.
+
+В окружение добавлены необходимые библиотеки:
+
+* Qt/WebEngine runtime
+* X11
+* XCB
+* XKB
+* OpenGL / Mesa
+* DRM / GBM
+* ALSA
+* PulseAudio
+* PipeWire
+* GTK
+* DBus
+* Fontconfig
+* NSS / NSPR
+* libgcrypt / libgpg-error
+* GDK Pixbuf
+
+## Почему нужен FHS
+
+Обычный NixOS не предоставляет `/usr/lib`, `/usr/lib64` и другие стандартные Linux-пути так, как ожидают бинарные приложения, собранные для Debian/Ubuntu.
+
+MAX распространяется как готовый бинарный `.deb`, поэтому вместо пересборки приложения из исходников используется FHS-окружение.
+
+Это позволяет MAX находить необходимые библиотеки и запускаться без изменения самого бинарного файла.
+
+## Обновление MAX
+
+При выходе новой версии MAX необходимо обновить:
+
+```nix
+version = "...";
+```
+
+URL `.deb`:
+
+```nix
+url = "...";
+```
+
+и SHA-256:
+
+```nix
+sha256 = "...";
+```
+
+После этого проверить сборку:
+
+```bash
+nix-build ./max.nix
+```
+
+и запустить:
+
+```bash
+./result/bin/max
+```
+
+## Важное замечание
+
+Этот проект **не содержит бинарный пакет MAX**.
+
+При сборке Nix скачивает официальный `.deb` с серверов MAX.
+
+Официальные Linux-пакеты MAX:
+
+https://download.max.ru/linux-repos
+
+Официальный сайт загрузки MAX:
+
+https://download.max.ru/
+
+## Автор
+
+**onikmani**
+
+GitHub:
+
+https://github.com/onikmani
+
+Репозиторий:
+
+https://github.com/onikmani/nixos-max
+
+## Лицензия
+
+Этот репозиторий содержит Nix-выражение для упаковки стороннего программного обеспечения.
+
+Лицензия самого MAX определяется правообладателем MAX и не изменяется этим проектом.
