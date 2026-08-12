@@ -120,7 +120,7 @@ let
       export XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
     '';
 
-    runScript = "${maxApp}/share/max/bin/max";
+    runScript = "cd /tmp && exec ${maxApp}/share/max/bin/max";
   };
 
 in
