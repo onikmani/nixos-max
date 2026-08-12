@@ -105,6 +105,7 @@ let
     multiPkgs = pkgs: runtimePkgs;
 
     unshareUser = false;
+    chdirToPwd = false;
 
     extraPreBwrapCmds = ''
       mkdir -p "$HOME"
@@ -120,7 +121,7 @@ let
       export XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
     '';
 
-    runScript = "cd /tmp && exec ${maxApp}/share/max/bin/max";
+    runScript = "${maxApp}/share/max/bin/max";
   };
 
 in
